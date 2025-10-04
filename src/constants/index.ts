@@ -6,43 +6,79 @@ export const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 export const DEFAULT_GITHUB_USERNAME = 'octocat';
 export const DEFAULT_WIDGET_SIZE: WidgetSize = '4x2';
 
-// 위젯 크기별 설정
+// 위젯 크기별 설정 (Kotlin 프로젝트와 동일)
 export const WIDGET_CONFIGS = {
   '1x1': {
-    displayDays: 7,
-    showToday: true,
+    weeks: 4,           // 4주 = 28일
+    cellSize: 10,
+    cellMargin: 1,
+    padding: 1,
+    showTitle: false,
+    showToday: false,
     showTotal: false,
-    showGraph: false,
+    showGraph: true,
+    showRefresh: false,
+    showLabels: false,
   },
   '2x1': {
-    displayDays: 14,
-    showToday: true,
-    showTotal: true,
-    showGraph: false,
+    weeks: 8,           // 8주 = 56일
+    cellSize: 10,
+    cellMargin: 1,
+    padding: 1,
+    showTitle: false,
+    showToday: false,
+    showTotal: false,
+    showGraph: true,
+    showRefresh: false,
+    showLabels: false,
   },
   '3x1': {
-    displayDays: 21,
-    showToday: true,
-    showTotal: true,
+    weeks: 12,          // 12주 = 84일
+    cellSize: 10,
+    cellMargin: 1,
+    padding: 1,
+    showTitle: false,
+    showToday: false,
+    showTotal: false,
     showGraph: true,
+    showRefresh: false,
+    showLabels: false,
   },
   '4x1': {
-    displayDays: 28,
-    showToday: true,
-    showTotal: true,
+    weeks: 15,          // 15주 = 105일
+    cellSize: 10,
+    cellMargin: 1,
+    padding: 4,
+    showTitle: false,
+    showToday: false,
+    showTotal: false,
     showGraph: true,
+    showRefresh: false,
+    showLabels: false,
   },
   '4x2': {
-    displayDays: 84,
+    weeks: 21,          // 21주 = 147일
+    cellSize: 12,
+    cellMargin: 1,
+    padding: 12,
+    showTitle: true,
     showToday: true,
     showTotal: true,
     showGraph: true,
+    showRefresh: true,
+    showLabels: false,
   },
   '4x3': {
-    displayDays: 147,
+    weeks: 21,          // 21주 = 147일 (4x2와 동일, 4x3은 widget_layout.xml 사용)
+    cellSize: 12,
+    cellMargin: 1,
+    padding: 12,
+    showTitle: true,
     showToday: true,
     showTotal: true,
     showGraph: true,
+    showRefresh: true,
+    showLabels: false,
   },
 } as const;
 

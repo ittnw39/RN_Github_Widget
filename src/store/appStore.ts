@@ -84,11 +84,12 @@ export const useAppStore = create<AppStore>()(
         set({ isLoading: true, error: null });
         
         try {
-          // 현재 연도와 이전 연도 데이터를 함께 가져오기
-          const currentYear = new Date().getFullYear();
-          const years = year === currentYear ? [currentYear - 1, currentYear] : [year];
+          console.log(`📊 Loading contribution data for ${username}, year: ${year}`);
           
-          const contributionData = await githubAPI.getMultiYearContributionData(username, years);
+          // 선택한 연도의 데이터만 가져오기
+          const contributionData = await githubAPI.getContributionData(username, year);
+          
+          console.log(`✅ Contribution data loaded: ${contributionData.totalContributions} contributions`);
           
           set({
             contributionData,
@@ -101,6 +102,7 @@ export const useAppStore = create<AppStore>()(
           await githubAPI.cacheData(STORAGE_KEYS.CONTRIBUTION_DATA, contributionData);
           await githubAPI.cacheData(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
         } catch (error: any) {
+          console.error('❌ Failed to load contribution data:', error);
           set({
             isLoading: false,
             error: error.message || '컨트리뷰션 데이터를 불러오는데 실패했습니다',

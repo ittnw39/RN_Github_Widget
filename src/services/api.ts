@@ -31,22 +31,34 @@ class GitHubAPIService {
       },
     });
 
-    this.graphqlClient = new GraphQLClient(GITHUB_GRAPHQL_URL, {
-      headers: {
-        'User-Agent': 'GitHub-Contribution-Widget/1.0',
-      },
-    });
+    // GraphQL 클라이언트 초기화 - 헤더는 setToken에서 설정
+    this.graphqlClient = new GraphQLClient(GITHUB_GRAPHQL_URL);
 
     this.initializeAuth();
   }
 
   private async initializeAuth() {
     try {
-      // 개발자 토큰 로드 (선택사항)
+      // 1. Native Module에서 빌드된 토큰 로드
+      const ConfigModule = require('../native/ConfigModule').default;
+      if (ConfigModule) {
+        const builtInToken = await ConfigModule.getGithubToken();
+        if (builtInToken && builtInToken.trim()) {
+          console.log('✅ GitHub 토큰 로드 완료');
+          this.setToken(builtInToken);
+          return;
+        }
+      }
+      
+      // 2. AsyncStorage에 저장된 토큰 확인 (백업)
       const savedToken = await AsyncStorage.getItem('github_token');
       if (savedToken) {
+        console.log('✅ 저장된 토큰 사용');
         this.setToken(savedToken);
+        return;
       }
+      
+      console.warn('⚠️ GitHub 토큰이 설정되지 않았습니다. API 속도 제한이 적용됩니다.');
     } catch (error) {
       console.warn('Failed to load GitHub token:', error);
     }
@@ -55,7 +67,12 @@ class GitHubAPIService {
   public setToken(token: string) {
     this.token = token;
     this.restClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    
+    // GraphQL 클라이언트 헤더 업데이트
     this.graphqlClient.setHeader('Authorization', `Bearer ${token}`);
+    this.graphqlClient.setHeader('Content-Type', 'application/json');
+    
+    console.log('✅ [API] 토큰 설정 완료:', token.substring(0, 15) + '...');
   }
 
   public async checkNetworkConnection(): Promise<boolean> {
@@ -106,8 +123,12 @@ class GitHubAPIService {
         throw new Error('네트워크 연결이 없습니다');
       }
 
+      console.log(`📊 Fetching contribution data for ${username}, year: ${year}`);
+      console.log('🔑 Token:', this.token ? `${this.token.substring(0, 10)}...` : 'NO TOKEN');
+
+      // graphql-request 라이브러리 사용 (변수 활용)
       const query = `
-        query($username: String!, $from: DateTime!, $to: DateTime!) {
+        query ($username: String!, $from: DateTime!, $to: DateTime!) {
           user(login: $username) {
             contributionsCollection(from: $from, to: $to) {
               contributionCalendar {
@@ -124,21 +145,41 @@ class GitHubAPIService {
         }
       `;
 
-      const from = new Date(year, 0, 1).toISOString();
-      const to = new Date(year, 11, 31, 23, 59, 59).toISOString();
-
       const variables = {
         username,
-        from,
-        to,
+        from: `${year}-01-01T00:00:00Z`,
+        to: `${year}-12-31T23:59:59Z`,
       };
 
-      const response = await this.graphqlClient.request<GitHubGraphQLData>(
-        query,
-        variables
+      console.log('🔍 GraphQL variables:', variables);
+
+      // axios로 직접 GraphQL 호출 (graphql-request 대신)
+      const axiosResponse = await axios.post(
+        GITHUB_GRAPHQL_URL,
+        { query, variables },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000,
+        }
       );
 
+      console.log('✅ GraphQL Response Status:', axiosResponse.status);
+      console.log('✅ GraphQL Response:', JSON.stringify(axiosResponse.data, null, 2));
+
+      if (axiosResponse.data.errors) {
+        console.error('❌ GraphQL Errors:', axiosResponse.data.errors);
+        throw new Error(`GraphQL Error: ${axiosResponse.data.errors[0].message}`);
+      }
+
+      const response = axiosResponse.data.data as GitHubGraphQLData;
+
+      console.log('✅ Parsed Response:', JSON.stringify(response, null, 2));
+
       if (!response.user?.contributionsCollection?.contributionCalendar) {
+        console.error('❌ Invalid response structure:', response);
         throw new Error('컨트리뷰션 데이터를 찾을 수 없습니다');
       }
 
@@ -151,12 +192,15 @@ class GitHubAPIService {
         });
       });
 
+      console.log(`✅ Total contributions: ${calendar.totalContributions}, Days: ${contributionsByDay.size}`);
+
       return {
         totalContributions: calendar.totalContributions,
         contributionsByDay,
       };
     } catch (error: any) {
-      console.error('Failed to fetch contribution data:', error);
+      console.error('❌ Failed to fetch contribution data:', error);
+      console.error('❌ Error details:', error.response || error.message);
       throw new Error(`컨트리뷰션 데이터를 가져올 수 없습니다: ${error.message}`);
     }
   }

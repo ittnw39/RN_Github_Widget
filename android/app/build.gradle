@@ -84,6 +84,15 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        
+        // GitHub 토큰 설정 (개발자용)
+        def props = new Properties()
+        def localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            props.load(new FileInputStream(localPropertiesFile))
+        }
+        def githubToken = props.getProperty("github.token") ?: ""
+        resValue("string", "github_token", githubToken)
     }
     signingConfigs {
         debug {

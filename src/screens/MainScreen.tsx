@@ -7,12 +7,15 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  FlatList,
+  Modal,
+  TextInput as RNTextInput,
+  Linking,
 } from 'react-native';
-import { LinearGradient } from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '../store/appStore';
-import Widget from '../components/Widget';
 import ContributionGrid from '../components/ContributionGrid';
-import { WidgetSize } from '../types';
 
 const MainScreen: React.FC = () => {
   const {
@@ -30,9 +33,32 @@ const MainScreen: React.FC = () => {
 
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [refreshing, setRefreshing] = useState(false);
+  const [showUsernameDialog, setShowUsernameDialog] = useState(false);
+  const [inputUsername, setInputUsername] = useState('');
 
   useEffect(() => {
-    if (username) {
+    console.log('🔵 [MainScreen] useEffect 실행');
+    console.log('🔵 [MainScreen] username:', username);
+    console.log('🔵 [MainScreen] selectedYear:', selectedYear);
+    
+    // 토큰 확인
+    const checkToken = async () => {
+      try {
+        const ConfigModule = require('../native/ConfigModule').default;
+        const token = await ConfigModule.getGithubToken();
+        console.log('🔵 [MainScreen] Native 토큰:', token ? `${token.substring(0, 10)}...` : 'NULL');
+      } catch (error) {
+        console.error('❌ [MainScreen] 토큰 확인 실패:', error);
+      }
+    };
+    checkToken();
+    
+    // 사용자명이 없으면 입력 다이얼로그 표시
+    if (!username) {
+      setTimeout(() => {
+        setShowUsernameDialog(true);
+      }, 500);
+    } else {
       loadUserData(username);
       loadContributionData(username, selectedYear);
     }
@@ -50,27 +76,27 @@ const MainScreen: React.FC = () => {
   };
 
   const handleChangeUser = () => {
-    Alert.prompt(
-      'GitHub 사용자명 변경',
-      '새로운 GitHub 사용자명을 입력하세요:',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '확인',
-          onPress: (newUsername?: string) => {
-            if (newUsername && newUsername.trim()) {
-              setUsername(newUsername.trim());
-            }
-          },
-        },
-      ],
-      'plain-text',
-      username
-    );
+    setInputUsername(username || '');
+    setShowUsernameDialog(true);
   };
 
-  const handleYearChange = (year: number) => {
-    setSelectedYear(year);
+  const handleUsernameSubmit = () => {
+    if (inputUsername && inputUsername.trim()) {
+      setUsername(inputUsername.trim());
+      setShowUsernameDialog(false);
+      setInputUsername('');
+    } else {
+      Alert.alert('오류', '사용자명을 입력해주세요.');
+    }
+  };
+
+  const handleUsernameCancel = () => {
+    if (!username) {
+      Alert.alert('알림', '사용자명을 입력해야 앱을 사용할 수 있습니다.');
+    } else {
+      setShowUsernameDialog(false);
+      setInputUsername('');
+    }
   };
 
   const getTodayContributions = (): number => {
@@ -83,160 +109,170 @@ const MainScreen: React.FC = () => {
     return contributionData?.totalContributions || 0;
   };
 
-  const renderYearSelector = () => {
+  // 연도 목록 생성 (최근 5년)
+  const getYearOptions = () => {
     const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+    return Array.from({ length: 5 }, (_, i) => currentYear - i);
+  };
 
-    return (
-      <View style={styles.yearSelector}>
-        <Text style={styles.yearLabel}>연도 선택:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {years.map((year) => (
-            <TouchableOpacity
-              key={year}
-              style={[
-                styles.yearButton,
-                selectedYear === year && styles.yearButtonSelected,
-              ]}
-              onPress={() => handleYearChange(year)}
-            >
-              <Text
-                style={[
-                  styles.yearButtonText,
-                  selectedYear === year && styles.yearButtonTextSelected,
-                ]}
+  // 사용자명 입력 다이얼로그
+  const renderUsernameDialog = () => (
+    <Modal
+      visible={showUsernameDialog}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={handleUsernameCancel}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>GitHub 사용자명</Text>
+          
+          <RNTextInput
+            style={styles.modalInput}
+            value={inputUsername}
+            onChangeText={setInputUsername}
+            placeholder="예: octocat"
+            autoCapitalize="none"
+            autoCorrect={false}
+            onSubmitEditing={handleUsernameSubmit}
+          />
+          
+          <View style={styles.modalButtons}>
+            {username && (
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={handleUsernameCancel}
               >
-                {year}
-              </Text>
+                <Text style={styles.cancelButtonText}>취소</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.confirmButton]} 
+              onPress={handleUsernameSubmit}
+            >
+              <Text style={styles.confirmButtonText}>확인</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          </View>
+        </View>
       </View>
-    );
-  };
-
-  const renderWidgets = () => {
-    const widgetSizes: WidgetSize[] = ['1x1', '2x1', '3x1', '4x1', '4x2', '4x3'];
-
-    return (
-      <View style={styles.widgetsContainer}>
-        <Text style={styles.sectionTitle}>위젯 미리보기</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {widgetSizes.map((size) => (
-            <View key={size} style={styles.widgetPreview}>
-              <Text style={styles.widgetSizeLabel}>{size}</Text>
-              <Widget
-                size={size}
-                username={username || '사용자'}
-                contributionData={contributionData}
-                isLoading={isLoading}
-                error={error}
-              />
-            </View>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  };
-
-  const renderRepositoryList = () => {
-    if (!repositories.length) return null;
-
-    return (
-      <View style={styles.repositoriesContainer}>
-        <Text style={styles.sectionTitle}>저장소 목록</Text>
-        <ScrollView style={styles.repositoryList}>
-          {repositories.slice(0, 10).map((repo) => (
-            <View key={repo.id} style={styles.repositoryItem}>
-              <Text style={styles.repositoryName}>{repo.name}</Text>
-              <Text style={styles.repositoryDescription} numberOfLines={2}>
-                {repo.description || '설명 없음'}
-              </Text>
-              <View style={styles.repositoryMeta}>
-                <Text style={styles.repositoryLanguage}>{repo.language}</Text>
-                <Text style={styles.repositoryStars}>
-                  ⭐ {repo.stargazers_count}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  };
+    </Modal>
+  );
 
   if (!username) {
     return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={['#667eea', '#764ba2']}
-          style={StyleSheet.absoluteFillObject}
-        />
-        <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeTitle}>GitHub 컨트리뷰션 위젯</Text>
-          <Text style={styles.welcomeSubtitle}>
-            GitHub 사용자명을 입력하여 시작하세요
-          </Text>
-          <TouchableOpacity
-            style={styles.startButton}
-            onPress={handleChangeUser}
-          >
-            <Text style={styles.startButtonText}>시작하기</Text>
-          </TouchableOpacity>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>GitHub Contribution</Text>
+          <Text style={styles.emptyMessage}>사용자명을 설정해주세요</Text>
         </View>
-      </View>
+        {renderUsernameDialog()}
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-      }
-    >
-      <LinearGradient
-        colors={['#667eea', '#764ba2']}
-        style={styles.header}
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
-        <View style={styles.headerContent}>
-          <View style={styles.userInfo}>
-            <Text style={styles.username}>{username}</Text>
-            <Text style={styles.userStats}>
-              오늘: {getTodayContributions()} | 전체: {getTotalContributions()}
-            </Text>
+        {/* 연도 선택 */}
+        <View style={styles.yearContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {getYearOptions().map((year) => (
+              <TouchableOpacity
+                key={year}
+                style={[
+                  styles.yearButton,
+                  selectedYear === year && styles.yearButtonSelected,
+                ]}
+                onPress={() => setSelectedYear(year)}
+              >
+                <Text
+                  style={[
+                    styles.yearButtonText,
+                    selectedYear === year && styles.yearButtonTextSelected,
+                  ]}
+                >
+                  {year}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* 타이틀 */}
+        <Text style={styles.title}>GitHub Contribution</Text>
+
+        {/* 컨트리뷰션 카드 */}
+        <View style={styles.card}>
+          <View style={styles.cardContent}>
+            {/* 가로 스크롤 가능한 그리드 */}
+            <ContributionGrid
+              data={contributionData}
+              size="full"
+              showLabels={false}
+              weeks={52}
+              cellSize={12}
+            />
+
+            {/* 오늘 컨트리뷰션 */}
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}>Today Contribution:</Text>
+              <Text style={styles.statValue}>{getTodayContributions()}</Text>
+            </View>
+
+            {/* 전체 컨트리뷰션 */}
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}>Total Contribution:</Text>
+              <Text style={styles.statValue}>{getTotalContributions()}</Text>
+            </View>
           </View>
-          <TouchableOpacity
-            style={styles.changeUserButton}
+        </View>
+
+        {/* 버튼 영역 */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={handleRefresh}>
+            <Text style={styles.buttonText}>새로고침</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.button, styles.buttonMargin]} 
             onPress={handleChangeUser}
           >
-            <Text style={styles.changeUserText}>변경</Text>
+            <Text style={styles.buttonText}>사용자 변경</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
 
-      <View style={styles.content}>
-        {renderYearSelector()}
+        {/* 리포지토리 목록 타이틀 */}
+        <Text style={styles.repoTitle}>리포지토리 목록</Text>
 
-        <View style={styles.contributionContainer}>
-          <Text style={styles.sectionTitle}>컨트리뷰션 그래프</Text>
-          <ContributionGrid
-            data={contributionData}
-            size="4x3"
-            showLabels={true}
+        {/* 리포지토리 목록 */}
+        {repositories.length > 0 && (
+          <FlatList
+            data={repositories.slice(0, 10)}
+            scrollEnabled={false}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.repoCard}>
+                <Text style={styles.repoName}>{item.name}</Text>
+                <Text style={styles.repoDescription} numberOfLines={2}>
+                  {item.description || '설명 없음'}
+                </Text>
+                <Text style={styles.repoStats}>
+                  ⭐ {item.stargazers_count} • 🍴 {item.forks_count}
+                </Text>
+              </View>
+            )}
           />
-        </View>
-
-        {renderWidgets()}
-        {renderRepositoryList()}
-
-        {lastSyncTime && (
-          <Text style={styles.lastSyncText}>
-            마지막 동기화: {lastSyncTime.toLocaleString()}
-          </Text>
         )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+
+      {/* 사용자명 입력 다이얼로그 */}
+      {renderUsernameDialog()}
+    </SafeAreaView>
   );
 };
 
@@ -245,179 +281,187 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  header: {
-    paddingTop: 50,
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     paddingBottom: 20,
-    paddingHorizontal: 20,
   },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  userInfo: {
-    flex: 1,
-  },
-  username: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  userStats: {
-    fontSize: 14,
-    color: '#fff',
-    opacity: 0.8,
-    marginTop: 4,
-  },
-  changeUserButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  changeUserText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
     padding: 20,
   },
-  yearSelector: {
-    marginBottom: 20,
-  },
-  yearLabel: {
-    fontSize: 16,
+  emptyTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
+    marginBottom: 12,
+  },
+  emptyMessage: {
+    fontSize: 16,
+    color: '#666',
+  },
+  yearContainer: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
   },
   yearButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 8,
     marginRight: 8,
-    backgroundColor: '#fff',
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#e0e0e0',
   },
   yearButtonSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#6200ee',
   },
   yearButtonText: {
+    fontSize: 14,
     color: '#333',
-    fontWeight: '500',
   },
   yearButtonTextSelected: {
     color: '#fff',
+    fontWeight: 'bold',
   },
-  contributionContainer: {
-    marginBottom: 30,
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 16,
+  },
+  card: {
+    margin: 16,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 8,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333',
-  },
-  widgetsContainer: {
-    marginBottom: 30,
-  },
-  widgetPreview: {
-    marginRight: 16,
-    alignItems: 'center',
-  },
-  widgetSizeLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
-  },
-  repositoriesContainer: {
-    marginBottom: 30,
-  },
-  repositoryList: {
-    maxHeight: 300,
-  },
-  repositoryItem: {
-    backgroundColor: '#fff',
+  cardContent: {
     padding: 16,
-    marginBottom: 8,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
-  repositoryName: {
+  gridScroll: {
+    marginBottom: 16,
+  },
+  statRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  statLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+  },
+  statValue: {
+    fontSize: 16,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  button: {
+    flex: 1,
+    backgroundColor: '#6200ee',
+    padding: 12,
+    borderRadius: 4,
+    alignItems: 'center',
+  },
+  buttonMargin: {
+    marginLeft: 8,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  repoTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  repoCard: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  repoName: {
+    fontSize: 16,
+    fontWeight: 'bold',
     marginBottom: 4,
   },
-  repositoryDescription: {
+  repoDescription: {
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
   },
-  repositoryMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  repositoryLanguage: {
+  repoStats: {
     fontSize: 12,
-    color: '#007AFF',
-    fontWeight: '500',
+    color: '#999',
   },
-  repositoryStars: {
-    fontSize: 12,
-    color: '#666',
-  },
-  lastSyncText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  welcomeContainer: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
   },
-  welcomeTitle: {
-    fontSize: 28,
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 24,
+    width: '80%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
     marginBottom: 16,
   },
-  welcomeSubtitle: {
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 4,
+    padding: 12,
     fontSize: 16,
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 40,
-    opacity: 0.8,
+    marginBottom: 16,
   },
-  startButton: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 25,
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
-  startButtonText: {
-    fontSize: 18,
+  modalButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+  },
+  confirmButton: {
+    backgroundColor: '#6200ee',
+  },
+  cancelButtonText: {
+    color: '#333',
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#667eea',
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

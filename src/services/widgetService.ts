@@ -81,10 +81,11 @@ class WidgetManager {
     const today = new Date().toISOString().split('T')[0];
     const todayContributions = contributionData.contributionsByDay.get(today) || 0;
 
-    // 위젯 크기에 따른 데이터 필터링
+    // 위젯 크기에 따른 데이터 필터링 (주 단위 -> 일 단위 변환)
+    const displayDays = config.weeks * 7;
     const filteredContributions = this.filterContributionsByDays(
       contributionData.contributionsByDay,
-      config.displayDays
+      displayDays
     );
 
     return {
@@ -93,10 +94,15 @@ class WidgetManager {
       totalContributions: contributionData.totalContributions,
       contributions: filteredContributions,
       config: {
+        showTitle: config.showTitle,
         showToday: config.showToday,
         showTotal: config.showTotal,
         showGraph: config.showGraph,
-        displayDays: config.displayDays,
+        showRefresh: config.showRefresh,
+        weeks: config.weeks,
+        cellSize: config.cellSize,
+        cellMargin: config.cellMargin,
+        padding: config.padding,
       },
       lastUpdated: new Date().toISOString(),
     };

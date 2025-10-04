@@ -1,178 +1,230 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Rect, Text as SvgText } from 'react-native-svg';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { ContributionData } from '../types';
-import { CONTRIBUTION_COLORS, WIDGET_CONFIGS } from '../constants';
-import { WidgetSize } from '../types';
 
 interface ContributionGridProps {
   data: ContributionData | null;
-  size: WidgetSize;
+  size?: 'full' | 'compact';
   showLabels?: boolean;
-  onCellPress?: (date: string, count: number) => void;
+  weeks?: number;     // 표시할 주 수
+  cellSize?: number;  // 셀 크기
 }
 
 const ContributionGrid: React.FC<ContributionGridProps> = ({
   data,
-  size,
+  size = 'full',
   showLabels = true,
-  onCellPress,
+  weeks = 21,         // 기본 21주
+  cellSize = 12,      // 기본 12dp
 }) => {
-  const config = WIDGET_CONFIGS[size];
-  const { displayDays } = config;
-  
-  if (!data) {
-    return <View style={styles.container} />;
+  if (!data || data.contributionsByDay.size === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>데이터를 불러오는 중...</Text>
+      </View>
+    );
   }
+
+  // 기여도 레벨별 색상 (기존 Kotlin 앱과 동일)
+  const colorLevels = [
+    '#EEEEEE', // 0
+    '#9BE9A8', // 1-2
+    '#40C463', // 3-5
+    '#30A14E', // 6-10
+    '#216E39', // 11+
+  ];
 
   const getContributionColor = (count: number): string => {
-    if (count === 0) return CONTRIBUTION_COLORS[0];
-    if (count < 3) return CONTRIBUTION_COLORS[1];
-    if (count < 5) return CONTRIBUTION_COLORS[2];
-    if (count < 10) return CONTRIBUTION_COLORS[3];
-    return CONTRIBUTION_COLORS[4];
+    if (count === 0) return colorLevels[0];
+    if (count < 3) return colorLevels[1];
+    if (count < 6) return colorLevels[2];
+    if (count < 11) return colorLevels[3];
+    return colorLevels[4];
   };
 
-  const getCellSize = (): number => {
-    switch (size) {
-      case '1x1': return 8;
-      case '2x1': return 10;
-      case '3x1': return 12;
-      case '4x1': return 14;
-      case '4x2': return 16;
-      case '4x3': return 18;
-      default: return 16;
-    }
-  };
-
-  const getSpacing = (): number => {
-    return getCellSize() * 0.1; // 10% spacing
-  };
-
-  const cellSize = getCellSize();
-  const spacing = getSpacing();
-  const totalSize = cellSize + spacing;
-
-  // 날짜 범위 계산
-  const today = new Date();
-  const startDate = new Date(today);
-  startDate.setDate(today.getDate() - displayDays + 1);
-
-  // 그리드 크기 계산
-  const weeks = Math.ceil(displayDays / 7);
-  const width = weeks * totalSize;
-  const height = 7 * totalSize;
-
-  // 요일 라벨
-  const dayLabels = ['월', '', '수', '', '금', '', ''];
+  // 날짜별 데이터를 배열로 변환하고 정렬
+  const sortedDates = Array.from(data.contributionsByDay.keys()).sort();
   
-  // 월 라벨 계산
-  const monthLabels: Array<{ month: string; x: number }> = [];
-  let currentMonth = -1;
-  let weekIndex = 0;
-
-  for (let i = 0; i < displayDays; i += 7) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
-    
-    if (date.getMonth() !== currentMonth) {
-      currentMonth = date.getMonth();
-      monthLabels.push({
-        month: (date.getMonth() + 1).toString(),
-        x: weekIndex * totalSize,
-      });
-    }
-    weekIndex++;
+  if (sortedDates.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>데이터가 없습니다</Text>
+      </View>
+    );
   }
 
-  const renderCells = () => {
-    const cells = [];
-    
-    for (let i = 0; i < displayDays; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const count = data.contributionsByDay.get(dateStr) || 0;
-      const color = getContributionColor(count);
-      
-      const weekIndex = Math.floor(i / 7);
-      const dayIndex = i % 7;
-      
-      const x = weekIndex * totalSize;
-      const y = dayIndex * totalSize;
-      
-      cells.push(
-        <Rect
-          key={i}
-          x={x}
-          y={y}
-          width={cellSize}
-          height={cellSize}
-          fill={color}
-          rx={2}
-          ry={2}
-          onPress={() => onCellPress?.(dateStr, count)}
-        />
-      );
+  const firstDate = new Date(sortedDates[0]);
+  const lastDate = new Date(sortedDates[sortedDates.length - 1]);
+
+  // 월요일 기준으로 시작 오프셋 계산
+  const firstDayOfWeek = firstDate.getDay(); // 0 = 일요일, 1 = 월요일, ...
+  const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // 월요일 = 0
+
+  // 주 단위로 그룹화
+  const weeksData: Array<Array<{ date: string; count: number } | null>> = [];
+  let currentWeek: Array<{ date: string; count: number } | null> = new Array(7).fill(null);
+  let weekIndex = 0;
+  let dayIndex = startOffset;
+
+  // 첫 주의 시작 오프셋 설정
+  for (let i = 0; i < startOffset; i++) {
+    currentWeek[i] = null;
+  }
+
+  sortedDates.forEach((dateStr) => {
+    const count = data.contributionsByDay.get(dateStr) || 0;
+    currentWeek[dayIndex] = { date: dateStr, count };
+    dayIndex++;
+
+    if (dayIndex === 7) {
+      weeksData.push([...currentWeek]);
+      currentWeek = new Array(7).fill(null);
+      dayIndex = 0;
+      weekIndex++;
     }
-    
-    return cells;
-  };
+  });
 
-  const renderDayLabels = () => {
-    if (!showLabels) return null;
-    
-    return dayLabels.map((label, index) => {
-      if (!label) return null;
-      
-      return (
-        <SvgText
-          key={index}
-          x={-20}
-          y={index * totalSize + cellSize / 2 + 4}
-          fontSize="10"
-          fill="#666"
-          textAnchor="end"
-        >
-          {label}
-        </SvgText>
-      );
-    });
-  };
+  // 마지막 주가 비어있지 않으면 추가
+  if (dayIndex > 0) {
+    weeksData.push(currentWeek);
+  }
 
-  const renderMonthLabels = () => {
-    if (!showLabels) return null;
-    
-    return monthLabels.map((label, index) => (
-      <SvgText
-        key={index}
-        x={label.x + cellSize / 2}
-        y={-5}
-        fontSize="10"
-        fill="#666"
-        textAnchor="middle"
-      >
-        {label.month}월
-      </SvgText>
-    ));
-  };
+  // 최근 N주만 표시 (Kotlin 앱과 동일)
+  const displayWeeks = weeksData.slice(-weeks);
+
+  const cellSpacing = 1; // Kotlin 앱의 margin과 동일
+  const dayLabels = ['Mon', '', 'Wed', '', 'Fri', '', ''];
+
+  // 월 라벨 생성
+  const monthLabels: Array<{ month: string; weekIndex: number }> = [];
+  let lastMonth = -1;
+  
+  displayWeeks.forEach((week, weekIdx) => {
+    const firstDayOfWeek = week.find(day => day !== null);
+    if (firstDayOfWeek) {
+      const date = new Date(firstDayOfWeek.date);
+      const month = date.getMonth();
+      if (month !== lastMonth) {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        monthLabels.push({ month: monthNames[month], weekIndex: weekIdx });
+        lastMonth = month;
+      }
+    }
+  });
 
   return (
     <View style={styles.container}>
-      <Svg width={width + 40} height={height + 30}>
-        {renderMonthLabels()}
-        {renderDayLabels()}
-        {renderCells()}
-      </Svg>
+      {showLabels && (
+        <View style={styles.monthLabelsContainer}>
+          <View style={[styles.monthLabelSpacer, { width: 30 }]} />
+          {monthLabels.map((label, idx) => (
+            <View
+              key={idx}
+              style={[
+                styles.monthLabel,
+                { left: 30 + label.weekIndex * (cellSize + cellSpacing) },
+              ]}
+            >
+              <Text style={styles.monthLabelText}>{label.month}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      
+      <View style={styles.gridContainer}>
+        {showLabels && (
+          <View style={styles.dayLabelsContainer}>
+            {dayLabels.map((label, idx) => (
+              <View
+                key={idx}
+                style={[styles.dayLabelCell, { height: cellSize + cellSpacing }]}
+              >
+                <Text style={styles.dayLabelText}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.weeksContainer}>
+            {displayWeeks.map((week, weekIdx) => (
+              <View key={weekIdx} style={styles.weekColumn}>
+                {week.map((day, dayIdx) => (
+                  <View
+                    key={`${weekIdx}-${dayIdx}`}
+                    style={[
+                      styles.cell,
+                      {
+                        width: cellSize,
+                        height: cellSize,
+                        marginBottom: dayIdx < 6 ? cellSpacing : 0,
+                        marginRight: cellSpacing,
+                        backgroundColor: day ? getContributionColor(day.count) : 'transparent',
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    paddingVertical: 8,
+  },
+  emptyContainer: {
+    padding: 20,
     alignItems: 'center',
+  },
+  emptyText: {
+    color: '#999',
+    fontSize: 14,
+  },
+  monthLabelsContainer: {
+    flexDirection: 'row',
+    height: 20,
+    marginBottom: 4,
+  },
+  monthLabelSpacer: {
+    height: 20,
+  },
+  monthLabel: {
+    position: 'absolute',
+    top: 0,
+  },
+  monthLabelText: {
+    fontSize: 10,
+    color: '#666',
+  },
+  gridContainer: {
+    flexDirection: 'row',
+  },
+  dayLabelsContainer: {
+    width: 30,
+    justifyContent: 'space-between',
+  },
+  dayLabelCell: {
     justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingRight: 4,
+  },
+  dayLabelText: {
+    fontSize: 9,
+    color: '#666',
+  },
+  weeksContainer: {
+    flexDirection: 'row',
+  },
+  weekColumn: {
+    flexDirection: 'column',
+  },
+  cell: {
+    borderRadius: 2,
   },
 });
 
