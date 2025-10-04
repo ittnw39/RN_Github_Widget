@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="@drawable/widget_background">
+
+    <!-- 헤더 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="GitHub 컨트리뷰션"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <Button
+            android:id="@+id/refresh_button"
+            android:layout_width="wrap_content"
+            android:layout_height="24dp"
+            android:text="새로고침"
+            android:textSize="8sp"
+            android:background="@drawable/button_background"
+            android:textColor="#FFFFFF"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="2dp" />
+
+    </LinearLayout>
+
+    <!-- 통계 정보 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="4dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="오늘"
+                android:textSize="8sp"
+                android:textColor="#666666" />
+
+            <TextView
+                android:id="@+id/today_contributions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#333333" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="전체"
+                android:textSize="8sp"
+                android:textColor="#666666" />
+
+            <TextView
+                android:id="@+id/total_contributions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#333333" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 컨트리뷰션 그리드 (간단한 버전) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="4dp">
+
+        <!-- 7x3 그리드 (21개 셀) -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!-- Column 0 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <View android:id="@+id/grid_cell_0" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_1" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_2" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+            </LinearLayout>
+
+            <!-- Column 1 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <View android:id="@+id/grid_cell_3" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_4" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_5" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+            </LinearLayout>
+
+            <!-- Column 2 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <View android:id="@+id/grid_cell_6" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_7" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_8" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+            </LinearLayout>
+
+            <!-- Column 3 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <View android:id="@+id/grid_cell_9" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_10" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_11" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+            </LinearLayout>
+
+            <!-- Column 4 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <View android:id="@+id/grid_cell_12" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_13" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_14" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+            </LinearLayout>
+
+            <!-- Column 5 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <View android:id="@+id/grid_cell_15" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_16" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_17" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+            </LinearLayout>
+
+            <!-- Column 6 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <View android:id="@+id/grid_cell_18" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_19" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+                <View android:id="@+id/grid_cell_20" android:layout_width="8dp" android:layout_height="8dp" android:layout_margin="1dp" android:background="#EEEEEE"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

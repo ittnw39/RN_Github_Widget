@@ -1,3 +1,10 @@
 <resources>
-    <string name="app_name">rn_github_widget</string>
+    <string name="app_name">GitHub 컨트리뷰션 위젯</string>
+    <string name="widget_description">GitHub 컨트리뷰션을 홈 화면에서 확인하세요</string>
+    <string name="widget_loading">로딩 중...</string>
+    <string name="widget_error">오류 발생</string>
+    <string name="widget_no_data">데이터 없음</string>
+    <string name="widget_refresh">새로고침</string>
+    <string name="widget_today">오늘</string>
+    <string name="widget_total">전체</string>
 </resources>
