@@ -41,39 +41,84 @@
         </intent-filter>
       </activity>
 
-      <!-- 위젯 Provider들 -->
+      <!-- 위젯 Provider - 1x1 -->
       <receiver
-        android:name=".WidgetProvider"
-        android:label="GitHub 컨트리뷰션 위젯"
+        android:name=".GitHubWidgetProvider1x1"
+        android:label="GitHub 위젯 1x1"
         android:exported="true">
         <intent-filter>
           <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-          <action android:name="com.rn_github_widget.ACTION_REFRESH" />
-          <action android:name="com.rn_github_widget.ACTION_OPEN_APP" />
         </intent-filter>
         <meta-data
           android:name="android.appwidget.provider"
-          android:resource="@xml/widget_info" />
+          android:resource="@xml/github_widget_info_1x1" />
       </receiver>
-
-      <!-- 백그라운드 서비스 -->
-      <service
-        android:name=".BackgroundSyncService"
-        android:enabled="true"
-        android:exported="false"
-        android:foregroundServiceType="dataSync" />
-
-      <!-- 부팅 완료 리시버 -->
+      
+      <!-- 위젯 Provider - 2x1 -->
       <receiver
-        android:name=".BootReceiver"
-        android:enabled="true"
+        android:name=".GitHubWidgetProvider2x1"
+        android:label="GitHub 위젯 2x1"
         android:exported="true">
-        <intent-filter android:priority="1000">
-          <action android:name="android.intent.action.BOOT_COMPLETED" />
-          <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-          <action android:name="android.intent.action.PACKAGE_REPLACED" />
-          <data android:scheme="package" />
+        <intent-filter>
+          <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
         </intent-filter>
+        <meta-data
+          android:name="android.appwidget.provider"
+          android:resource="@xml/github_widget_info_2x1" />
+      </receiver>
+      
+      <!-- 위젯 Provider - 3x1 -->
+      <receiver
+        android:name=".GitHubWidgetProvider3x1"
+        android:label="GitHub 위젯 3x1"
+        android:exported="true">
+        <intent-filter>
+          <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        </intent-filter>
+        <meta-data
+          android:name="android.appwidget.provider"
+          android:resource="@xml/github_widget_info_3x1" />
+      </receiver>
+      
+      <!-- 위젯 Provider - 4x1 -->
+      <receiver
+        android:name=".GitHubWidgetProvider4x1"
+        android:label="GitHub 위젯 4x1"
+        android:exported="true">
+        <intent-filter>
+          <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        </intent-filter>
+        <meta-data
+          android:name="android.appwidget.provider"
+          android:resource="@xml/github_widget_info_4x1" />
+      </receiver>
+      
+      <!-- 위젯 Provider - 4x2 -->
+      <receiver
+        android:name=".GitHubWidgetProvider4x2"
+        android:label="GitHub 위젯 4x2"
+        android:exported="true">
+        <intent-filter>
+          <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+          <action android:name="com.rn_github_widget.ACTION_REFRESH_WIDGET_4x2" />
+        </intent-filter>
+        <meta-data
+          android:name="android.appwidget.provider"
+          android:resource="@xml/github_widget_info_4x2" />
+      </receiver>
+      
+      <!-- 위젯 Provider - 4x3 -->
+      <receiver
+        android:name=".GitHubWidgetProvider4x3"
+        android:label="GitHub 위젯 4x3"
+        android:exported="true">
+        <intent-filter>
+          <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+          <action android:name="com.rn_github_widget.ACTION_REFRESH_WIDGET_4x3" />
+        </intent-filter>
+        <meta-data
+          android:name="android.appwidget.provider"
+          android:resource="@xml/github_widget_info_4x3" />
       </receiver>
     </application>
 </manifest>
