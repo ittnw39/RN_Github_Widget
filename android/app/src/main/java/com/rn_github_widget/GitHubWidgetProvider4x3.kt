@@ -20,11 +20,11 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class GitHubWidgetProvider4x2 : AppWidgetProvider() {
+class GitHubWidgetProvider4x3 : AppWidgetProvider() {
 
     companion object {
-        private const val TAG = "GitHubWidgetProvider4x2"
-        const val ACTION_REFRESH_WIDGET = "com.rn_github_widget.ACTION_REFRESH_WIDGET_4x2"
+        private const val TAG = "GitHubWidgetProvider4x3"
+        const val ACTION_REFRESH_WIDGET = "com.rn_github_widget.ACTION_REFRESH_WIDGET_4x3"
         private const val MAX_DAYS = 147 // 21 weeks
         
         private val cellIds = listOf(
@@ -86,7 +86,7 @@ class GitHubWidgetProvider4x2 : AppWidgetProvider() {
             if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
                 // Enqueue WorkManager task
                 val syncWorkRequest = OneTimeWorkRequestBuilder<GitHubSyncWorker>()
-                    .addTag("WIDGET_REFRESH_4x2_$appWidgetId")
+                    .addTag("WIDGET_REFRESH_4x3_$appWidgetId")
                     .build()
                 WorkManager.getInstance(context.applicationContext).enqueue(syncWorkRequest)
             }
@@ -95,11 +95,11 @@ class GitHubWidgetProvider4x2 : AppWidgetProvider() {
 
     @SuppressLint("RemoteViewLayout")
     private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        val views = RemoteViews(context.packageName, R.layout.github_widget_4x2)
+        val views = RemoteViews(context.packageName, R.layout.github_widget_4x3)
         val requestCode = appWidgetId
         
         // Setup refresh button
-        val refreshIntent = Intent(context, GitHubWidgetProvider4x2::class.java).apply {
+        val refreshIntent = Intent(context, GitHubWidgetProvider4x3::class.java).apply {
             action = ACTION_REFRESH_WIDGET
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
         }
@@ -159,7 +159,7 @@ class GitHubWidgetProvider4x2 : AppWidgetProvider() {
                 try {
                     val data = GitHubDataManager.fetchContributionData(context)
                     if (data.isNotEmpty()) {
-                        val updatedViews = RemoteViews(context.packageName, R.layout.github_widget_4x2)
+                        val updatedViews = RemoteViews(context.packageName, R.layout.github_widget_4x3)
                         
                         // Re-setup intents
                         updatedViews.setOnClickPendingIntent(R.id.refresh_button, refreshPendingIntent)

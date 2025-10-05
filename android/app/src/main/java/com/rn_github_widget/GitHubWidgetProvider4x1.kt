@@ -18,18 +18,20 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class GitHubWidgetProvider1x1 : AppWidgetProvider() {
+class GitHubWidgetProvider4x1 : AppWidgetProvider() {
 
     companion object {
-        private const val TAG = "GitHubWidgetProvider1x1"
-        private const val MAX_DAYS = 28 // 4 weeks
+        private const val TAG = "GitHubWidgetProvider4x1"
+        private const val MAX_DAYS = 112 // 16 weeks
         
-        private val cellIds = listOf(
-            R.id.grid_cell_0, R.id.grid_cell_1, R.id.grid_cell_2, R.id.grid_cell_3, R.id.grid_cell_4, R.id.grid_cell_5, R.id.grid_cell_6,
-            R.id.grid_cell_7, R.id.grid_cell_8, R.id.grid_cell_9, R.id.grid_cell_10, R.id.grid_cell_11, R.id.grid_cell_12, R.id.grid_cell_13,
-            R.id.grid_cell_14, R.id.grid_cell_15, R.id.grid_cell_16, R.id.grid_cell_17, R.id.grid_cell_18, R.id.grid_cell_19, R.id.grid_cell_20,
-            R.id.grid_cell_21, R.id.grid_cell_22, R.id.grid_cell_23, R.id.grid_cell_24, R.id.grid_cell_25, R.id.grid_cell_26, R.id.grid_cell_27
-        )
+        private val cellIds = (0 until MAX_DAYS).map { i ->
+            val resId = "grid_cell_$i"
+            try {
+                R.id::class.java.getField(resId).getInt(null)
+            } catch (e: Exception) {
+                0
+            }
+        }.filter { it != 0 }
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -42,7 +44,7 @@ class GitHubWidgetProvider1x1 : AppWidgetProvider() {
 
     @SuppressLint("RemoteViewLayout")
     private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-        val views = RemoteViews(context.packageName, R.layout.github_widget_1x1)
+        val views = RemoteViews(context.packageName, R.layout.github_widget_4x1)
         val requestCode = appWidgetId
 
         // Setup main activity launch
